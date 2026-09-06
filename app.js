@@ -4,7 +4,7 @@
   var DATA = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.categories) || [];
   var SHOPS = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.shops) || [];
   var RECIPIENT_EMAIL = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.recipientEmail) || "";
-  var APP_VERSION = "v5";
+  var APP_VERSION = "v6";
 
   var DB_NAME = "storeVisitDB";
   var STORE_NAME = "kv";

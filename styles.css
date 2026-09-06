@@ -74,6 +74,12 @@ label {
   margin-bottom: 14px;
 }
 
+.field-label {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
 input[type="text"], input[type="date"], select, textarea {
   width: 100%;
   margin-top: 6px;
