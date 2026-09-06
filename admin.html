@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Store Visit Report — Admin</title>
+<style>
+  :root { --teal:#0F3D3E; --bg:#F7F5F0; --card:#fff; --ink:#1F2421; --ink-soft:#5B6360; --border:#DDD8CC; --red:#D64545; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  header { background:var(--teal); color:#fff; padding:16px 20px; }
+  header h1 { margin:0; font-size:18px; }
+  main { max-width:760px; margin:0 auto; padding:20px; }
+  fieldset { border:1px solid var(--border); border-radius:10px; margin-bottom:16px; padding:14px; }
+  legend { font-weight:600; padding:0 6px; }
+  label.small { display:block; font-size:12px; color:var(--ink-soft); margin-bottom:10px; }
+  input[type="text"], input[type="password"], input[type="email"] {
+    width:100%; margin-top:4px; padding:9px 10px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--card); color:var(--ink); font-family:inherit;
+  }
+  .row { display:flex; gap:10px; }
+  .row > div { flex:1; }
+  button { cursor:pointer; font-family:inherit; }
+  .btn-primary { background:var(--teal); color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:14px; font-weight:600; }
+  .btn-outline { background:none; border:1px solid var(--teal); color:var(--teal); border-radius:8px; padding:9px 14px; font-size:13px; }
+  .btn-danger { background:none; border:1px solid var(--red); color:var(--red); border-radius:6px; padding:6px 10px; font-size:12px; }
+  .btn-ghost { background:none; border:none; color:var(--ink-soft); font-size:12px; padding:6px 8px; }
+  #status { font-size:13px; margin-top:10px; white-space:pre-wrap; }
+  .cat-block { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:14px; }
+  .cat-head { display:flex; gap:8px; align-items:flex-start; margin-bottom:10px; }
+  .cat-head input[type="text"] { font-size:15px; font-weight:600; }
+  .icon-input { width:60px !important; text-align:center; font-size:20px !important; }
+  .item-row { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+  .item-row input { flex:1; }
+  .actions-row { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  #editor-root { margin-top:10px; }
+  .id-label { font-size:11px; color:var(--ink-soft); font-family:monospace; }
+  button:disabled { opacity:0.3; cursor:default; }
+</style>
+</head>
+<body>
+<header><h1>Store Visit Report — Admin</h1></header>
+<main>
+
+  <fieldset>
+    <legend>GitHub Connection</legend>
+    <div class="row">
+      <div><label class="small">Owner<input type="text" id="gh-owner" placeholder="Rich-mond1"></label></div>
+      <div><label class="small">Repo<input type="text" id="gh-repo" placeholder="store-visit-app"></label></div>
+    </div>
+    <label class="small">Token (repo scope)<input type="password" id="gh-token" placeholder="ghp_..."></label>
+    <label class="small">Default draft recipient email (optional, can be left blank)
+      <input type="email" id="recipient-email" placeholder="area.manager@example.com">
+    </label>
+    <div class="actions-row">
+      <button class="btn-outline" id="btn-load">Load from GitHub</button>
+      <button class="btn-primary" id="btn-publish">Publish</button>
+    </div>
+    <div id="status"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Shops</legend>
+    <div id="shops-root"></div>
+    <button class="btn-outline" id="btn-add-shop">+ Add shop</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>Categories</legend>
+    <div id="editor-root"></div>
+    <button class="btn-outline" id="btn-add-cat">+ Add category</button>
+  </fieldset>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var categories = [];
+  var shops = [];
+  var currentVersion = 0;
+
+  var els = {
+    owner: document.getElementById("gh-owner"),
+    repo: document.getElementById("gh-repo"),
+    token: document.getElementById("gh-token"),
+    recipient: document.getElementById("recipient-email"),
+    status: document.getElementById("status"),
+    editorRoot: document.getElementById("editor-root"),
+    shopsRoot: document.getElementById("shops-root"),
+    btnAddShop: document.getElementById("btn-add-shop"),
+    btnLoad: document.getElementById("btn-load"),
+    btnPublish: document.getElementById("btn-publish"),
+    btnAddCat: document.getElementById("btn-add-cat")
+  };
+
+  function makeUid() { return Math.random().toString(36).slice(2, 9); }
+
+  function slugify(str) {
+    return (str || "")
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || makeUid();
+  }
+
+  function setStatus(msg) { els.status.textContent = msg; }
+
+  // ---------- Load local defaults ----------
+  function loadLocalSeed() {
+    var seed = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.categories) || [];
+    currentVersion = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.version) || 0;
+    els.recipient.value = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.recipientEmail) || "";
+    shops = ((window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.shops) || []).slice();
+    categories = seed.map(function (c) {
+      return {
+        _uid: makeUid(),
+        id: c.id,
+        name: c.name,
+        icon: c.icon,
+        ratingType: c.ratingType || "3state",
+        items: (c.items || []).map(function (i) { return { _uid: makeUid(), id: i.id, label: i.label }; })
+      };
+    });
+  }
+
+  function restorePrefs() {
+    try {
+      els.owner.value = localStorage.getItem("svr_admin_owner") || "";
+      els.repo.value = localStorage.getItem("svr_admin_repo") || "";
+      els.token.value = localStorage.getItem("svr_admin_token") || "";
+    } catch (e) {}
+  }
+
+  function savePrefs() {
+    try {
+      localStorage.setItem("svr_admin_owner", els.owner.value.trim());
+      localStorage.setItem("svr_admin_repo", els.repo.value.trim());
+      localStorage.setItem("svr_admin_token", els.token.value.trim());
+    } catch (e) {}
+  }
+
+  // ---------- Render editor ----------
+  function renderEditor() {
+    els.editorRoot.innerHTML = "";
+    categories.forEach(function (cat) {
+      els.editorRoot.appendChild(renderCategoryBlock(cat));
+    });
+  }
+
+  function renderCategoryBlock(cat) {
+    var block = document.createElement("div");
+    block.className = "cat-block";
+
+    var head = document.createElement("div");
+    head.className = "cat-head";
+
+    var iconInput = document.createElement("input");
+    iconInput.type = "text";
+    iconInput.className = "icon-input";
+    iconInput.value = cat.icon || "";
+    iconInput.maxLength = 4;
+    iconInput.addEventListener("input", function () { cat.icon = iconInput.value; });
+
+    var nameWrap = document.createElement("div");
+    nameWrap.style.flex = "1";
+    var nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = cat.name || "";
+    nameInput.addEventListener("input", function () {
+      cat.name = nameInput.value;
+      if (!cat.id) { cat.id = slugify(cat.name); idLabel.textContent = "id: " + cat.id; }
+    });
+    var idLabel = document.createElement("div");
+    idLabel.className = "id-label";
+    if (!cat.id) cat.id = slugify(cat.name || makeUid());
+    idLabel.textContent = "id: " + cat.id;
+    nameWrap.appendChild(nameInput);
+    nameWrap.appendChild(idLabel);
+
+    var typeSelect = document.createElement("select");
+    typeSelect.style.cssText = "font-size:12px;padding:6px;border-radius:6px;border:1px solid var(--border);align-self:flex-start;";
+    if (!cat.ratingType) cat.ratingType = "3state";
+    [["3state", "Good/Needs work/Poor"], ["scale10", "Score 1-10"]].forEach(function (opt) {
+      var o = document.createElement("option");
+      o.value = opt[0]; o.textContent = opt[1];
+      if (cat.ratingType === opt[0]) o.selected = true;
+      typeSelect.appendChild(o);
+    });
+    typeSelect.addEventListener("change", function () { cat.ratingType = typeSelect.value; });
+
+    var upCatBtn = document.createElement("button");
+    upCatBtn.className = "btn-ghost";
+    upCatBtn.textContent = "↑";
+    upCatBtn.disabled = categories.indexOf(cat) === 0;
+    upCatBtn.addEventListener("click", function () {
+      var i = categories.indexOf(cat);
+      if (i <= 0) return;
+      categories.splice(i, 1); categories.splice(i - 1, 0, cat);
+      renderEditor();
+    });
+
+    var downCatBtn = document.createElement("button");
+    downCatBtn.className = "btn-ghost";
+    downCatBtn.textContent = "↓";
+    downCatBtn.disabled = categories.indexOf(cat) === categories.length - 1;
+    downCatBtn.addEventListener("click", function () {
+      var i = categories.indexOf(cat);
+      if (i < 0 || i >= categories.length - 1) return;
+      categories.splice(i, 1); categories.splice(i + 1, 0, cat);
+      renderEditor();
+    });
+
+    var delCatBtn = document.createElement("button");
+    delCatBtn.className = "btn-danger";
+    delCatBtn.textContent = "Delete category";
+    delCatBtn.addEventListener("click", function () {
+      if (!confirm('Delete category "' + cat.name + '"?')) return;
+      categories = categories.filter(function (c) { return c._uid !== cat._uid; });
+      renderEditor();
+    });
+
+    head.appendChild(iconInput);
+    head.appendChild(nameWrap);
+    head.appendChild(typeSelect);
+    head.appendChild(upCatBtn);
+    head.appendChild(downCatBtn);
+    head.appendChild(delCatBtn);
+    block.appendChild(head);
+
+    var itemsWrap = document.createElement("div");
+    cat.items.forEach(function (item) {
+      itemsWrap.appendChild(renderItemRow(cat, item));
+    });
+    block.appendChild(itemsWrap);
+
+    var addItemBtn = document.createElement("button");
+    addItemBtn.className = "btn-ghost";
+    addItemBtn.textContent = "+ Add item";
+    addItemBtn.addEventListener("click", function () {
+      var newItem = { _uid: makeUid(), id: cat.id + "-" + makeUid().slice(0, 4), label: "" };
+      cat.items.push(newItem);
+      itemsWrap.appendChild(renderItemRow(cat, newItem));
+    });
+    block.appendChild(addItemBtn);
+
+    return block;
+  }
+
+  function renderItemRow(cat, item) {
+    var row = document.createElement("div");
+    row.className = "item-row";
+
+    var labelInput = document.createElement("input");
+    labelInput.type = "text";
+    labelInput.value = item.label || "";
+    labelInput.placeholder = "Item text";
+    labelInput.addEventListener("input", function () { item.label = labelInput.value; });
+
+    var delBtn = document.createElement("button");
+    delBtn.className = "btn-danger";
+    delBtn.textContent = "✕";
+    delBtn.addEventListener("click", function () {
+      cat.items = cat.items.filter(function (i) { return i._uid !== item._uid; });
+      row.remove();
+    });
+
+    row.appendChild(labelInput);
+    row.appendChild(delBtn);
+    return row;
+  }
+
+  els.btnAddCat.addEventListener("click", function () {
+    categories.push({ _uid: makeUid(), id: "", name: "", icon: "📋", items: [] });
+    renderEditor();
+  });
+
+  // ---------- GitHub load/publish ----------
+  function utf8ToBase64(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+
+  function buildDataJs() {
+    var clean = categories
+      .filter(function (c) { return c.name.trim() !== ""; })
+      .map(function (c) {
+        return {
+          id: c.id || slugify(c.name),
+          name: c.name.trim(),
+          icon: c.icon || "📋",
+          ratingType: c.ratingType || "3state",
+          items: c.items.filter(function (i) { return i.label.trim() !== ""; }).map(function (i) {
+            return { id: i.id, label: i.label.trim() };
+          })
+        };
+      });
+    var payload = {
+      version: currentVersion + 1,
+      recipientEmail: els.recipient.value.trim(),
+      shops: shops.map(function (s) { return s.trim(); }).filter(function (s) { return s !== ""; }),
+      categories: clean
+    };
+    return "// data.js — published by admin.html\nwindow.STORE_CHECKLIST_DATA = " + JSON.stringify(payload, null, 2) + ";\n";
+  }
+
+  els.btnLoad.addEventListener("click", function () {
+    var owner = els.owner.value.trim();
+    var repo = els.repo.value.trim();
+    if (!owner || !repo) { alert("Missing owner/repo"); return; }
+    savePrefs();
+    setStatus("Loading from GitHub...");
+    fetch("https://raw.githubusercontent.com/" + owner + "/" + repo + "/main/data.js?t=" + Date.now())
+      .then(function (res) {
+        if (!res.ok) throw new Error("Not found (" + res.status + "). If this is the first time, publish once from here first.");
+        return res.text();
+      })
+      .then(function (text) {
+        var match = text.match(/window\.STORE_CHECKLIST_DATA\s*=\s*(\{[\s\S]*\});?\s*$/);
+        if (!match) throw new Error("Could not read the remote data.js (unexpected format).");
+        var parsed = JSON.parse(match[1]);
+        currentVersion = parsed.version || 0;
+        els.recipient.value = parsed.recipientEmail || "";
+        shops = (parsed.shops || []).slice();
+        categories = (parsed.categories || []).map(function (c) {
+          return {
+            _uid: makeUid(), id: c.id, name: c.name, icon: c.icon, ratingType: c.ratingType || "3state",
+            items: (c.items || []).map(function (i) { return { _uid: makeUid(), id: i.id, label: i.label }; })
+          };
+        });
+        renderEditor();
+        renderShops();
+        setStatus("Loaded — current published version: v" + currentVersion);
+      })
+      .catch(function (err) { setStatus("❌ " + err.message); });
+  });
+
+  els.btnPublish.addEventListener("click", function () {
+    var owner = els.owner.value.trim();
+    var repo = els.repo.value.trim();
+    var token = els.token.value.trim();
+    if (!owner || !repo || !token) { alert("Missing owner/repo/token."); return; }
+    savePrefs();
+    setStatus("Publishing...");
+
+    var apiUrl = "https://api.github.com/repos/" + owner + "/" + repo + "/contents/data.js";
+    var fileContent = buildDataJs();
+
+    fetch(apiUrl, { headers: { Authorization: "token " + token } })
+      .then(function (res) {
+        if (res.status === 200) return res.json().then(function (j) { return j.sha; });
+        if (res.status === 404) return null;
+        return res.json().then(function (j) { throw new Error("Error reading current data.js: " + res.status + " " + (j.message || "")); });
+      })
+      .then(function (sha) {
+        var body = { message: "Publish checklist v" + (currentVersion + 1), content: utf8ToBase64(fileContent) };
+        if (sha) body.sha = sha;
+        return fetch(apiUrl, {
+          method: "PUT",
+          headers: { Authorization: "token " + token, "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      })
+      .then(function (res) {
+        if (!res.ok) return res.json().then(function (j) { throw new Error("Publish failed: " + res.status + " " + (j.message || "")); });
+        currentVersion = currentVersion + 1;
+        setStatus("✅ Published — v" + currentVersion + "\nThe app will pick it up next time it opens online.");
+      })
+      .catch(function (err) { setStatus("❌ " + err.message); });
+  });
+
+  // ---------- Shops ----------
+  function renderShops() {
+    els.shopsRoot.innerHTML = "";
+    shops.forEach(function (shop, idx) {
+      var row = document.createElement("div");
+      row.className = "item-row";
+
+      var input = document.createElement("input");
+      input.type = "text";
+      input.value = shop;
+      input.addEventListener("input", function () { shops[idx] = input.value; });
+
+      var upBtn = document.createElement("button");
+      upBtn.className = "btn-ghost";
+      upBtn.textContent = "↑";
+      upBtn.disabled = idx === 0;
+      upBtn.addEventListener("click", function () {
+        if (idx === 0) return;
+        var tmp = shops[idx - 1]; shops[idx - 1] = shops[idx]; shops[idx] = tmp;
+        renderShops();
+      });
+
+      var downBtn = document.createElement("button");
+      downBtn.className = "btn-ghost";
+      downBtn.textContent = "↓";
+      downBtn.disabled = idx === shops.length - 1;
+      downBtn.addEventListener("click", function () {
+        if (idx === shops.length - 1) return;
+        var tmp = shops[idx + 1]; shops[idx + 1] = shops[idx]; shops[idx] = tmp;
+        renderShops();
+      });
+
+      var delBtn = document.createElement("button");
+      delBtn.className = "btn-danger";
+      delBtn.textContent = "✕";
+      delBtn.addEventListener("click", function () {
+        shops.splice(idx, 1);
+        renderShops();
+      });
+
+      row.appendChild(input);
+      row.appendChild(upBtn);
+      row.appendChild(downBtn);
+      row.appendChild(delBtn);
+      els.shopsRoot.appendChild(row);
+    });
+  }
+
+  els.btnAddShop.addEventListener("click", function () {
+    shops.push("");
+    renderShops();
+  });
+
+  // ---------- Init ----------
+  loadLocalSeed();
+  restorePrefs();
+  renderEditor();
+  renderShops();
+})();
+</script>
+</body>
+</html>

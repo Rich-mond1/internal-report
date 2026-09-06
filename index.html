@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Store Visit Report</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0F3D3E">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>Store Visit Report</h1>
+    <span id="sync-indicator" class="sync-indicator"></span>
+  </header>
+
+  <main id="app">
+    <section id="screen-info" class="screen">
+      <label>Shop
+        <select id="input-shop">
+          <option value="">Select a shop</option>
+        </select>
+      </label>
+      <div id="shop-error" class="field-error" hidden>Enter a shop name first</div>
+      <label>Manager on duty
+        <input type="text" id="input-manager" placeholder="Name" autocomplete="off">
+      </label>
+      <label>Visit date
+        <input type="date" id="input-date">
+      </label>
+      <button id="btn-continue" class="btn-primary">Continue</button>
+    </section>
+
+    <section id="screen-grid" class="screen" hidden>
+      <div class="visit-summary">
+        <button id="btn-edit-info" class="btn-link">✎ <span id="summary-text"></span></button>
+      </div>
+      <div id="category-grid" class="category-grid"></div>
+
+      <div class="finish-panel">
+        <label>Overall visit score (optional)
+          <div id="score-picker" class="score-picker"></div>
+        </label>
+        <button id="btn-export" class="btn-primary btn-large">Save &amp; create draft</button>
+        <button id="btn-new-visit" class="btn-link">New visit (clears everything)</button>
+      </div>
+    </section>
+
+    <section id="screen-category" class="screen" hidden>
+      <button id="btn-back" class="btn-link">← Back</button>
+      <h2 id="category-title"></h2>
+      <div id="category-items" class="items-list"></div>
+      <label class="comment-label">Comment
+        <textarea id="category-comment" rows="4" placeholder="Notes, findings, actions..."></textarea>
+      </label>
+    </section>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
