@@ -1,6 +1,6 @@
 // data.js — published by admin.html
 window.STORE_CHECKLIST_DATA = {
-  "version": 4,
+  "version": 5,
   "recipientEmail": "",
   "shops": [
     "Fenchurch",
