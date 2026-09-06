@@ -1,4 +1,4 @@
-var CACHE_NAME = "store-visit-v4";
+var CACHE_NAME = "store-visit-v5";
 var ASSETS = [
   "./",
   "./index.html",
@@ -30,16 +30,14 @@ self.addEventListener("fetch", function (event) {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    caches.match(event.request).then(function (cached) {
-      var fetchPromise = fetch(event.request).then(function (networkResponse) {
-        if (networkResponse && networkResponse.status === 200) {
-          var clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, clone); });
-        }
-        return networkResponse;
-      }).catch(function () { return cached; });
-
-      return cached || fetchPromise;
+    fetch(event.request).then(function (networkResponse) {
+      if (networkResponse && networkResponse.status === 200) {
+        var clone = networkResponse.clone();
+        caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, clone); });
+      }
+      return networkResponse;
+    }).catch(function () {
+      return caches.match(event.request);
     })
   );
 });

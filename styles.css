@@ -52,6 +52,13 @@ body {
 }
 .sync-indicator.offline { background: var(--ink-soft); }
 
+.build-version {
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink-soft);
+  padding: 4px 0;
+}
+
 main#app {
   max-width: 640px;
   margin: 0 auto;
