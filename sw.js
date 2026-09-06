@@ -1,4 +1,4 @@
-var CACHE_NAME = "store-visit-v3";
+var CACHE_NAME = "store-visit-v4";
 var ASSETS = [
   "./",
   "./index.html",

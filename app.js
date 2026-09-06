@@ -383,7 +383,7 @@
       lines.push(cat.name.toUpperCase());
       rated.forEach(function (item) {
         var it = state.items[item.id];
-        lines.push(ratingIcon(cat, it.rating) + " " + item.label);
+        lines.push(item.label + "  " + ratingIcon(cat, it.rating));
         if (it.note && it.note.trim()) lines.push("   ↳ Note: " + it.note.trim());
       });
       if (comment) lines.push("Comment: " + comment);
