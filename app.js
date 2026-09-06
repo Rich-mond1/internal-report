@@ -4,7 +4,7 @@
   var DATA = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.categories) || [];
   var SHOPS = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.shops) || [];
   var RECIPIENT_EMAIL = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.recipientEmail) || "";
-  var APP_VERSION = "v8";
+  var APP_VERSION = "v9";
 
   var DB_NAME = "storeVisitDB";
   var STORE_NAME = "kv";
@@ -142,7 +142,7 @@
       "screen-info", "screen-grid", "screen-category",
       "input-shop", "input-manager", "input-date", "btn-continue",
       "summary-text", "btn-edit-info", "category-grid",
-      "score-picker", "btn-export", "btn-new-visit", "shop-error", "score-readout", "btn-clear-score", "build-version", "final-comment",
+      "score-picker", "btn-export", "btn-new-visit", "shop-error", "score-readout", "btn-clear-score", "build-version-text", "btn-update-app", "final-comment",
       "btn-back", "btn-back-bottom", "category-title", "category-items", "category-comment",
       "sync-indicator"
     ].forEach(function (id) { el[id] = document.getElementById(id); });
@@ -465,6 +465,29 @@
       persistVisit();
     });
 
+    el["btn-update-app"].addEventListener("click", function () {
+      el["btn-update-app"].textContent = "Updating...";
+      var cleanup = Promise.resolve();
+
+      if ("serviceWorker" in navigator) {
+        cleanup = navigator.serviceWorker.getRegistrations().then(function (regs) {
+          return Promise.all(regs.map(function (r) { return r.unregister(); }));
+        });
+      }
+
+      cleanup.then(function () {
+        if ("caches" in window) {
+          return caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+          });
+        }
+      }).then(function () {
+        location.reload();
+      }).catch(function () {
+        location.reload();
+      });
+    });
+
     el["btn-clear-score"].addEventListener("click", function () {
       visit.overallScore = null;
       persistVisit();
@@ -491,7 +514,7 @@
   // ---------- Init ----------
   function init() {
     cacheEls();
-    el["build-version"].textContent = APP_VERSION;
+    el["build-version-text"].textContent = APP_VERSION;
     populateShopOptions();
     wireEvents();
     updateSyncIndicator();
