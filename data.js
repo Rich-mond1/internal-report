@@ -1,5 +1,6 @@
+// data.js — published by admin.html
 window.STORE_CHECKLIST_DATA = {
-  "version": 3,
+  "version": 4,
   "recipientEmail": "",
   "shops": [
     "Fenchurch",
@@ -27,12 +28,12 @@ window.STORE_CHECKLIST_DATA = {
     "St Mary's Axe",
     "Baker Street",
     "Fitzrovia",
-    "Shoreditch",
-    "Kingly",
-    "Fenchurch Street",
-    "Broadgate",
     "Canary Wharf",
+    "Kingly",
+    "Shoreditch",
+    "Broadgate",
     "Victoria",
+    "Fenchurch Street",
     "Bow Lane"
   ],
   "categories": [
@@ -498,7 +499,7 @@ window.STORE_CHECKLIST_DATA = {
       "items": [
         {
           "id": "of1",
-          "label": "Risk Proof daily checklist completed"
+          "label": "cleaningess"
         },
         {
           "id": "of2",
