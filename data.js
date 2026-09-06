@@ -1,4 +1,3 @@
-// data.js — published by admin.html
 window.STORE_CHECKLIST_DATA = {
   "version": 5,
   "recipientEmail": "",
@@ -28,12 +27,12 @@ window.STORE_CHECKLIST_DATA = {
     "St Mary's Axe",
     "Baker Street",
     "Fitzrovia",
-    "Canary Wharf",
-    "Kingly",
     "Shoreditch",
-    "Broadgate",
-    "Victoria",
+    "Kingly",
     "Fenchurch Street",
+    "Broadgate",
+    "Canary Wharf",
+    "Victoria",
     "Bow Lane"
   ],
   "categories": [
@@ -78,6 +77,14 @@ window.STORE_CHECKLIST_DATA = {
         {
           "id": "en9",
           "label": "Customer seating area (tables, chairs, mirrors)"
+        },
+        {
+          "id": "en10",
+          "label": "Aggregator tablets on, charged & connected (Deliveroo, Uber Eats, Just Eat)"
+        },
+        {
+          "id": "en11",
+          "label": "Aggregator notifications on, no missed/stuck orders"
         }
       ]
     },
@@ -334,7 +341,24 @@ window.STORE_CHECKLIST_DATA = {
       "name": "Knowledge",
       "icon": "🧠",
       "ratingType": "3state",
-      "items": []
+      "items": [
+        {
+          "id": "kn1",
+          "label": "Staff can name today's allergens"
+        },
+        {
+          "id": "kn2",
+          "label": "Staff knows returns/refund policy"
+        },
+        {
+          "id": "kn3",
+          "label": "Staff can explain current promotions/LTOs"
+        },
+        {
+          "id": "kn4",
+          "label": "Staff aware of today's 86'd items"
+        }
+      ]
     },
     {
       "id": "sushi",
@@ -352,39 +376,11 @@ window.STORE_CHECKLIST_DATA = {
         },
         {
           "id": "su3",
-          "label": "Tablet organisation"
+          "label": "Aggregator tablet organised"
         },
         {
           "id": "su4",
           "label": "Chef presentation"
-        }
-      ]
-    },
-    {
-      "id": "aggregators",
-      "name": "Aggregator Tablets",
-      "icon": "📱",
-      "ratingType": "3state",
-      "items": [
-        {
-          "id": "ag1",
-          "label": "All tablets on, charged & connected (Deliveroo, Uber Eats, Just Eat)"
-        },
-        {
-          "id": "ag2",
-          "label": "Notification sound on, no missed orders"
-        },
-        {
-          "id": "ag3",
-          "label": "No orders stuck/unconfirmed"
-        },
-        {
-          "id": "ag4",
-          "label": "Menu live and correct on all platforms"
-        },
-        {
-          "id": "ag5",
-          "label": "Prep time settings correct"
         }
       ]
     },
@@ -409,6 +405,10 @@ window.STORE_CHECKLIST_DATA = {
         {
           "id": "av4",
           "label": "Key ingredients stocked for the day"
+        },
+        {
+          "id": "av5",
+          "label": "Aggregator prep time settings correct"
         }
       ]
     },
@@ -499,7 +499,7 @@ window.STORE_CHECKLIST_DATA = {
       "items": [
         {
           "id": "of1",
-          "label": "cleaningess"
+          "label": "Risk Proof daily checklist completed"
         },
         {
           "id": "of2",
@@ -517,6 +517,106 @@ window.STORE_CHECKLIST_DATA = {
       "icon": "✨",
       "ratingType": "3state",
       "items": []
+    },
+    {
+      "id": "health-safety",
+      "name": "Health & Safety",
+      "icon": "🧯",
+      "ratingType": "3state",
+      "items": [
+        {
+          "id": "hs1",
+          "label": "First aid kit stocked & in date"
+        },
+        {
+          "id": "hs2",
+          "label": "Fire extinguishers accessible & in date"
+        },
+        {
+          "id": "hs3",
+          "label": "Fire exits clear & signed"
+        },
+        {
+          "id": "hs4",
+          "label": "Accident book up to date"
+        }
+      ]
+    },
+    {
+      "id": "coshh",
+      "name": "COSHH / Chemicals",
+      "icon": "🧴",
+      "ratingType": "3state",
+      "items": [
+        {
+          "id": "co1",
+          "label": "Chemicals stored separately from food"
+        },
+        {
+          "id": "co2",
+          "label": "Chemicals correctly labelled"
+        },
+        {
+          "id": "co3",
+          "label": "COSHH data sheets accessible"
+        }
+      ]
+    },
+    {
+      "id": "deliveries",
+      "name": "Deliveries",
+      "icon": "🚚",
+      "ratingType": "3state",
+      "items": [
+        {
+          "id": "dv1",
+          "label": "Delivery temperature checked on arrival"
+        },
+        {
+          "id": "dv2",
+          "label": "Goods dated & rotated (FIFO)"
+        },
+        {
+          "id": "dv3",
+          "label": "Delivery matches invoice/order"
+        }
+      ]
+    },
+    {
+      "id": "pest-control",
+      "name": "Pest Control",
+      "icon": "🐀",
+      "ratingType": "3state",
+      "items": [
+        {
+          "id": "pc1",
+          "label": "No signs of pest activity"
+        },
+        {
+          "id": "pc2",
+          "label": "Pest control visit sticker current"
+        }
+      ]
+    },
+    {
+      "id": "allergen-labelling",
+      "name": "Allergen Labelling",
+      "icon": "⚠️",
+      "ratingType": "3state",
+      "items": [
+        {
+          "id": "al1",
+          "label": "PPDS items have correct allergen label"
+        },
+        {
+          "id": "al2",
+          "label": "Allergen matrix visible and current"
+        },
+        {
+          "id": "al3",
+          "label": "Menu allergen info accessible to customers"
+        }
+      ]
     }
   ]
 };

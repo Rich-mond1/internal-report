@@ -4,7 +4,7 @@
   var DATA = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.categories) || [];
   var SHOPS = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.shops) || [];
   var RECIPIENT_EMAIL = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.recipientEmail) || "";
-  var APP_VERSION = "v6";
+  var APP_VERSION = "v8";
 
   var DB_NAME = "storeVisitDB";
   var STORE_NAME = "kv";
@@ -78,6 +78,7 @@
       manager: "",
       visitDate: todayISO(),
       overallScore: null,
+      finalComment: "",
       categories: {}
     };
   }
@@ -141,8 +142,8 @@
       "screen-info", "screen-grid", "screen-category",
       "input-shop", "input-manager", "input-date", "btn-continue",
       "summary-text", "btn-edit-info", "category-grid",
-      "score-picker", "btn-export", "btn-new-visit", "shop-error", "score-readout", "btn-clear-score", "build-version",
-      "btn-back", "category-title", "category-items", "category-comment",
+      "score-picker", "btn-export", "btn-new-visit", "shop-error", "score-readout", "btn-clear-score", "build-version", "final-comment",
+      "btn-back", "btn-back-bottom", "category-title", "category-items", "category-comment",
       "sync-indicator"
     ].forEach(function (id) { el[id] = document.getElementById(id); });
   }
@@ -180,6 +181,7 @@
 
   function renderGrid() {
     renderSummary();
+    el["final-comment"].value = visit.finalComment || "";
     el["category-grid"].innerHTML = "";
     DATA.forEach(function (cat) {
       var card = document.createElement("div");
@@ -391,6 +393,13 @@
       lines.push("");
     });
 
+    var finalComment = (visit.finalComment || "").trim();
+    if (finalComment) {
+      lines.push("SUMMARY");
+      lines.push(finalComment);
+      lines.push("");
+    }
+
     return lines.join("\n");
   }
 
@@ -438,6 +447,7 @@
     });
 
     el["btn-back"].addEventListener("click", backToGrid);
+    el["btn-back-bottom"].addEventListener("click", backToGrid);
 
     el["category-comment"].addEventListener("input", function () {
       if (!currentCategoryId) return;
@@ -449,6 +459,11 @@
     });
 
     el["btn-export"].addEventListener("click", doExport);
+
+    el["final-comment"].addEventListener("input", function () {
+      visit.finalComment = el["final-comment"].value;
+      persistVisit();
+    });
 
     el["btn-clear-score"].addEventListener("click", function () {
       visit.overallScore = null;
