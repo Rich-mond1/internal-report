@@ -140,7 +140,7 @@
       "screen-info", "screen-grid", "screen-category",
       "input-shop", "input-manager", "input-date", "btn-continue",
       "summary-text", "btn-edit-info", "category-grid",
-      "score-picker", "btn-export", "btn-new-visit", "shop-error",
+      "score-picker", "btn-export", "btn-new-visit", "shop-error", "score-readout", "btn-clear-score",
       "btn-back", "category-title", "category-items", "category-comment",
       "sync-indicator"
     ].forEach(function (id) { el[id] = document.getElementById(id); });
@@ -203,13 +203,14 @@
         btn.className = "score-btn" + (visit.overallScore === val ? " selected" : "");
         btn.textContent = String(val);
         btn.addEventListener("click", function () {
-          visit.overallScore = visit.overallScore === val ? null : val;
+          visit.overallScore = val;
           persistVisit();
           renderScorePicker();
         });
         el["score-picker"].appendChild(btn);
       })(i);
     }
+    el["score-readout"].textContent = visit.overallScore ? ("Selected: " + visit.overallScore + "/5") : "Not set";
   }
 
   function findCategory(catId) {
@@ -341,9 +342,14 @@
     return div.innerHTML;
   }
 
+  function ratingIcon(cat, rating) {
+    if (cat.ratingType === "scale10") return "(" + rating + "/10)";
+    return rating === "bien" ? "✅" : rating === "mejorar" ? "⚠️" : "❌";
+  }
+
   function buildEmailBody() {
     var lines = [];
-    lines.push("Store Visit Report");
+    lines.push("STORE VISIT REPORT");
     lines.push("Shop: " + (visit.shopName || "-"));
     lines.push("Manager on duty: " + (visit.manager || "-"));
     lines.push("Visit date: " + (visit.visitDate || "-"));
@@ -357,12 +363,12 @@
       cat.items.forEach(function (item) {
         var it = state.items[item.id];
         if (isRated(it) && isUrgent(cat, it.rating)) {
-          urgent.push("- [" + cat.name + "] " + item.label + " (" + formatRatingTag(cat, it.rating) + ")");
+          urgent.push("❌ [" + cat.name + "] " + item.label + " (" + formatRatingTag(cat, it.rating) + ")");
         }
       });
     });
     if (urgent.length) {
-      lines.push("URGENT / ACTION REQUIRED");
+      lines.push("🚨 URGENT / ACTION REQUIRED");
       lines = lines.concat(urgent);
       lines.push("");
     }
@@ -374,11 +380,11 @@
       var comment = (state.comment || "").trim();
       if (!rated.length && !comment) return;
 
-      lines.push("-- " + cat.name + " --");
+      lines.push(cat.name.toUpperCase());
       rated.forEach(function (item) {
         var it = state.items[item.id];
-        lines.push("[" + formatRatingTag(cat, it.rating) + "] " + item.label);
-        if (it.note && it.note.trim()) lines.push("   Note: " + it.note.trim());
+        lines.push(ratingIcon(cat, it.rating) + " " + item.label);
+        if (it.note && it.note.trim()) lines.push("   ↳ Note: " + it.note.trim());
       });
       if (comment) lines.push("Comment: " + comment);
       lines.push("");
@@ -442,6 +448,12 @@
     });
 
     el["btn-export"].addEventListener("click", doExport);
+
+    el["btn-clear-score"].addEventListener("click", function () {
+      visit.overallScore = null;
+      persistVisit();
+      renderScorePicker();
+    });
 
     el["btn-new-visit"].addEventListener("click", function () {
       if (!window.confirm("This clears the current visit without saving. Continue?")) return;

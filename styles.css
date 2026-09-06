@@ -109,8 +109,9 @@ textarea { resize: vertical; }
   cursor: pointer;
 }
 
-.visit-summary { margin-bottom: 12px; }
-.visit-summary .btn-link { text-align: left; padding: 6px 0; font-size: 13px; color: var(--ink-soft); }
+.visit-summary { margin-bottom: 4px; }
+.visit-summary .btn-link { text-align: left; padding: 6px 0 2px; font-size: 13px; color: var(--ink-soft); }
+.save-status { font-size: 12px; color: var(--green); margin: 0 0 14px; }
 
 .category-grid {
   display: grid;
@@ -176,6 +177,24 @@ textarea { resize: vertical; }
   color: var(--ink);
 }
 .score-btn.selected { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+.score-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 8px 0 16px;
+}
+
+.btn-link-inline {
+  background: none;
+  border: none;
+  color: var(--teal);
+  font-size: 12px;
+  padding: 0;
+  cursor: pointer;
+}
 
 .items-list { margin-bottom: 18px; }
 

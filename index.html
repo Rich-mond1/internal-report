@@ -35,6 +35,7 @@
     <section id="screen-grid" class="screen" hidden>
       <div class="visit-summary">
         <button id="btn-edit-info" class="btn-link">✎ <span id="summary-text"></span></button>
+        <div class="save-status">Autosaved on this device — works fully offline</div>
       </div>
       <div id="category-grid" class="category-grid"></div>
 
@@ -42,6 +43,10 @@
         <label>Overall visit score (optional)
           <div id="score-picker" class="score-picker"></div>
         </label>
+        <div class="score-meta">
+          <span id="score-readout"></span>
+          <button type="button" id="btn-clear-score" class="btn-link-inline">Clear</button>
+        </div>
         <button id="btn-export" class="btn-primary btn-large">Save &amp; create draft</button>
         <button id="btn-new-visit" class="btn-link">New visit (clears everything)</button>
       </div>
