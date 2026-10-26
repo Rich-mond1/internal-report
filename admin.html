@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,13 +10,15 @@
   body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
   header { background:var(--teal); color:#fff; padding:16px 20px; }
   header h1 { margin:0; font-size:18px; }
-  main { max-width:760px; margin:0 auto; padding:20px; }
+  main { max-width:860px; margin:0 auto; padding:20px; }
   fieldset { border:1px solid var(--border); border-radius:10px; margin-bottom:16px; padding:14px; }
   legend { font-weight:600; padding:0 6px; }
+  .hint { font-size:12px; color:var(--ink-soft); margin:0 0 10px; }
   label.small { display:block; font-size:12px; color:var(--ink-soft); margin-bottom:10px; }
   input[type="text"], input[type="password"], input[type="email"] {
     width:100%; margin-top:4px; padding:9px 10px; font-size:14px; border:1px solid var(--border); border-radius:6px; background:var(--card); color:var(--ink); font-family:inherit;
   }
+  select { font-size:12px; padding:6px; border-radius:6px; border:1px solid var(--border); background:var(--card); font-family:inherit; }
   .row { display:flex; gap:10px; }
   .row > div { flex:1; }
   button { cursor:pointer; font-family:inherit; }
@@ -26,15 +28,22 @@
   .btn-ghost { background:none; border:none; color:var(--ink-soft); font-size:12px; padding:6px 8px; }
   #status { font-size:13px; margin-top:10px; white-space:pre-wrap; }
   .cat-block { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:14px; }
-  .cat-head { display:flex; gap:8px; align-items:flex-start; margin-bottom:10px; }
+  .cat-head { display:flex; gap:8px; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap; }
   .cat-head input[type="text"] { font-size:15px; font-weight:600; }
+  .cat-opts { display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); }
   .icon-input { width:60px !important; text-align:center; font-size:20px !important; }
-  .item-row { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
-  .item-row input { flex:1; }
+  .item-row { display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+  .item-row input { flex:1; margin-top:0; }
   .actions-row { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
   #editor-root { margin-top:10px; }
   .id-label { font-size:11px; color:var(--ink-soft); font-family:monospace; }
   button:disabled { opacity:0.3; cursor:default; }
+  .shop-block { border-bottom:1px solid var(--border); padding:8px 0; }
+  .shop-block:last-child { border-bottom:none; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px 14px; margin:6px 0 2px; font-size:12px; color:var(--ink-soft); }
+  .chips label { display:flex; align-items:center; gap:5px; cursor:pointer; }
+  .dup { border-color:var(--red) !important; background:#FDECEC !important; }
+  .feat-id { font-size:11px; color:var(--ink-soft); font-family:monospace; min-width:120px; }
 </style>
 </head>
 <body>
@@ -45,9 +54,9 @@
     <legend>GitHub Connection</legend>
     <div class="row">
       <div><label class="small">Owner<input type="text" id="gh-owner" placeholder="Rich-mond1"></label></div>
-      <div><label class="small">Repo<input type="text" id="gh-repo" placeholder="store-visit-app"></label></div>
+      <div><label class="small">Repo<input type="text" id="gh-repo" placeholder="internal-report"></label></div>
     </div>
-    <label class="small">Token (repo scope)<input type="password" id="gh-token" placeholder="ghp_..."></label>
+    <label class="small">Token (fine-grained, Contents: read/write)<input type="password" id="gh-token" placeholder="github_pat_..."></label>
     <label class="small">Default draft recipient email (optional, can be left blank)
       <input type="email" id="recipient-email" placeholder="area.manager@example.com">
     </label>
@@ -59,7 +68,20 @@
   </fieldset>
 
   <fieldset>
+    <legend>Shop tags</legend>
+    <p class="hint">Tags (e.g. Honi Sushi, Pokerrito machine) decide which categories and items appear for each shop. Tag a category or item below to show it only in tagged shops.</p>
+    <div id="features-root"></div>
+    <button class="btn-outline" id="btn-add-feature">+ Add tag</button>
+    <div id="add-feature-form" class="item-row" style="display:none;margin-top:8px">
+      <input type="text" id="new-feature-name" placeholder="Tag name (e.g. Vending machine)" autocomplete="off">
+      <button type="button" class="btn-primary" id="btn-confirm-feature">Add</button>
+      <button type="button" class="btn-ghost" id="btn-cancel-feature">Cancel</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
     <legend>Shops</legend>
+    <p class="hint">Renaming a shop starts its follow-up history from scratch on every device, so rename only when needed.</p>
     <div id="shops-root"></div>
     <button class="btn-outline" id="btn-add-shop">+ Add shop</button>
   </fieldset>
@@ -72,13 +94,26 @@
 
 </main>
 
+<script src="data.js" onerror="void 0"></script>
 <script>
 (function () {
   "use strict";
 
-  var categories = [];
-  var shops = [];
+  var features = [];   // { id, name }
+  var categories = []; // { _uid, id, name, icon, group, feature, items:[{ _uid, id, label, type, feature }] }
+  var shops = [];      // { _uid, name, features:[] }
   var currentVersion = 0;
+
+  var GROUP_OPTIONS = [
+    ["visit", "Every visit (grid)"],
+    ["ip", "IP menu (button)"],
+    ["compliance", "Compliance & records (collapsible)"]
+  ];
+  var TYPE_OPTIONS = [
+    ["scale5", "5 levels (Good → Poor)"],
+    ["yesno", "Yes / No"],
+    ["scale10", "Score 1-10"]
+  ];
 
   var els = {
     owner: document.getElementById("gh-owner"),
@@ -88,7 +123,9 @@
     status: document.getElementById("status"),
     editorRoot: document.getElementById("editor-root"),
     shopsRoot: document.getElementById("shops-root"),
+    featuresRoot: document.getElementById("features-root"),
     btnAddShop: document.getElementById("btn-add-shop"),
+    btnAddFeature: document.getElementById("btn-add-feature"),
     btnLoad: document.getElementById("btn-load"),
     btnPublish: document.getElementById("btn-publish"),
     btnAddCat: document.getElementById("btn-add-cat")
@@ -99,27 +136,32 @@
   function slugify(str) {
     return (str || "")
       .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || makeUid();
   }
 
   function setStatus(msg) { els.status.textContent = msg; }
 
-  // ---------- Load local defaults ----------
-  function loadLocalSeed() {
-    var seed = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.categories) || [];
-    currentVersion = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.version) || 0;
-    els.recipient.value = (window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.recipientEmail) || "";
-    shops = ((window.STORE_CHECKLIST_DATA && window.STORE_CHECKLIST_DATA.shops) || []).slice();
-    categories = seed.map(function (c) {
+  // ---------- Load data (accepts current and older formats) ----------
+  function applyData(d) {
+    d = d || {};
+    currentVersion = d.version || 0;
+    els.recipient.value = d.recipientEmail || "";
+    features = (d.features || []).map(function (f) { return { id: f.id, name: f.name || f.id }; });
+    shops = (d.shops || []).map(function (s) {
+      if (typeof s === "string") return { _uid: makeUid(), name: s, features: [] };
+      return { _uid: makeUid(), name: s.name || "", features: (s.features || []).slice() };
+    });
+    categories = (d.categories || []).map(function (c) {
+      var legacy10 = c.ratingType === "scale10";
       return {
-        _uid: makeUid(),
-        id: c.id,
-        name: c.name,
-        icon: c.icon,
-        ratingType: c.ratingType || "3state",
-        items: (c.items || []).map(function (i) { return { _uid: makeUid(), id: i.id, label: i.label }; })
+        _uid: makeUid(), id: c.id, name: c.name, icon: c.icon,
+        group: c.group || "visit",
+        feature: c.feature || "",
+        items: (c.items || []).map(function (i) {
+          return { _uid: makeUid(), id: i.id, label: i.label, type: i.type || (legacy10 ? "scale10" : "scale5"), feature: i.feature || "" };
+        })
       };
     });
   }
@@ -140,7 +182,168 @@
     } catch (e) {}
   }
 
-  // ---------- Render editor ----------
+  function renderAll() { renderFeatures(); renderShops(); renderEditor(); }
+
+  function makeSelect(options, value, onChange) {
+    var sel = document.createElement("select");
+    options.forEach(function (opt) {
+      var o = document.createElement("option");
+      o.value = opt[0]; o.textContent = opt[1];
+      if (opt[0] === value) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change", function () { onChange(sel.value); });
+    return sel;
+  }
+
+  function featureOptions(emptyLabel) {
+    var opts = [["", emptyLabel]];
+    features.forEach(function (f) { opts.push([f.id, f.name]); });
+    return opts;
+  }
+
+  // ---------- Tags (features) ----------
+  function renderFeatures() {
+    els.featuresRoot.innerHTML = "";
+    features.forEach(function (f) {
+      var row = document.createElement("div");
+      row.className = "item-row";
+      var input = document.createElement("input");
+      input.type = "text";
+      input.value = f.name;
+      input.addEventListener("input", function () { f.name = input.value; });
+      input.addEventListener("change", function () { renderShops(); renderEditor(); });
+      var id = document.createElement("span");
+      id.className = "feat-id";
+      id.textContent = "id: " + f.id;
+      var del = document.createElement("button");
+      del.className = "btn-danger";
+      del.textContent = "✕";
+      del.addEventListener("click", function () {
+        if (!confirm('Delete tag "' + f.name + '"? It will be removed from all shops, categories and items.')) return;
+        features = features.filter(function (x) { return x.id !== f.id; });
+        shops.forEach(function (s) { s.features = s.features.filter(function (x) { return x !== f.id; }); });
+        categories.forEach(function (c) {
+          if (c.feature === f.id) c.feature = "";
+          c.items.forEach(function (i) { if (i.feature === f.id) i.feature = ""; });
+        });
+        renderAll();
+      });
+      row.appendChild(input);
+      row.appendChild(id);
+      row.appendChild(del);
+      els.featuresRoot.appendChild(row);
+    });
+  }
+
+  var featForm = document.getElementById("add-feature-form");
+  var featInput = document.getElementById("new-feature-name");
+  function closeFeatForm() { featForm.style.display = "none"; featInput.value = ""; }
+  function addFeature() {
+    var name = featInput.value.trim();
+    if (!name) { featInput.focus(); return; }
+    var base = slugify(name), id = base, n = 2;
+    while (features.some(function (f) { return f.id === id; })) { id = base + "-" + n; n++; }
+    features.push({ id: id, name: name });
+    closeFeatForm();
+    renderAll();
+  }
+  els.btnAddFeature.addEventListener("click", function () {
+    featForm.style.display = "flex";
+    featInput.focus();
+  });
+  document.getElementById("btn-confirm-feature").addEventListener("click", addFeature);
+  document.getElementById("btn-cancel-feature").addEventListener("click", closeFeatForm);
+  featInput.addEventListener("keydown", function (e) { if (e.key === "Enter") addFeature(); });
+
+  // ---------- Shops ----------
+  function isDuplicateShop(shop) {
+    var name = shop.name.trim().toLowerCase();
+    if (!name) return false;
+    return shops.some(function (s) { return s !== shop && s.name.trim().toLowerCase() === name; });
+  }
+
+  function renderShops() {
+    els.shopsRoot.innerHTML = "";
+    shops.forEach(function (shop, idx) {
+      var block = document.createElement("div");
+      block.className = "shop-block";
+
+      var row = document.createElement("div");
+      row.className = "item-row";
+
+      var input = document.createElement("input");
+      input.type = "text";
+      input.value = shop.name;
+      input.className = isDuplicateShop(shop) ? "dup" : "";
+      input.addEventListener("input", function () {
+        shop.name = input.value;
+        input.className = isDuplicateShop(shop) ? "dup" : "";
+      });
+
+      var upBtn = document.createElement("button");
+      upBtn.className = "btn-ghost";
+      upBtn.textContent = "↑";
+      upBtn.disabled = idx === 0;
+      upBtn.addEventListener("click", function () {
+        shops.splice(idx, 1); shops.splice(idx - 1, 0, shop);
+        renderShops();
+      });
+
+      var downBtn = document.createElement("button");
+      downBtn.className = "btn-ghost";
+      downBtn.textContent = "↓";
+      downBtn.disabled = idx === shops.length - 1;
+      downBtn.addEventListener("click", function () {
+        shops.splice(idx, 1); shops.splice(idx + 1, 0, shop);
+        renderShops();
+      });
+
+      var delBtn = document.createElement("button");
+      delBtn.className = "btn-danger";
+      delBtn.textContent = "✕";
+      delBtn.addEventListener("click", function () {
+        shops.splice(idx, 1);
+        renderShops();
+      });
+
+      row.appendChild(input);
+      row.appendChild(upBtn);
+      row.appendChild(downBtn);
+      row.appendChild(delBtn);
+      block.appendChild(row);
+
+      if (features.length) {
+        var chips = document.createElement("div");
+        chips.className = "chips";
+        features.forEach(function (f) {
+          var lab = document.createElement("label");
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = shop.features.indexOf(f.id) !== -1;
+          cb.addEventListener("change", function () {
+            var i = shop.features.indexOf(f.id);
+            if (cb.checked && i === -1) shop.features.push(f.id);
+            if (!cb.checked && i !== -1) shop.features.splice(i, 1);
+          });
+          lab.appendChild(cb);
+          lab.appendChild(document.createTextNode(f.name));
+          chips.appendChild(lab);
+        });
+        block.appendChild(chips);
+      }
+      els.shopsRoot.appendChild(block);
+    });
+  }
+
+  els.btnAddShop.addEventListener("click", function () {
+    shops.push({ _uid: makeUid(), name: "", features: [] });
+    renderShops();
+    var inputs = els.shopsRoot.querySelectorAll("input[type=text]");
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
+  // ---------- Categories ----------
   function renderEditor() {
     els.editorRoot.innerHTML = "";
     categories.forEach(function (cat) {
@@ -164,30 +367,20 @@
 
     var nameWrap = document.createElement("div");
     nameWrap.style.flex = "1";
+    nameWrap.style.minWidth = "200px";
     var nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.value = cat.name || "";
+    var idLabel = document.createElement("div");
+    idLabel.className = "id-label";
     nameInput.addEventListener("input", function () {
       cat.name = nameInput.value;
       if (!cat.id) { cat.id = slugify(cat.name); idLabel.textContent = "id: " + cat.id; }
     });
-    var idLabel = document.createElement("div");
-    idLabel.className = "id-label";
     if (!cat.id) cat.id = slugify(cat.name || makeUid());
     idLabel.textContent = "id: " + cat.id;
     nameWrap.appendChild(nameInput);
     nameWrap.appendChild(idLabel);
-
-    var typeSelect = document.createElement("select");
-    typeSelect.style.cssText = "font-size:12px;padding:6px;border-radius:6px;border:1px solid var(--border);align-self:flex-start;";
-    if (!cat.ratingType) cat.ratingType = "3state";
-    [["3state", "Good/Needs work/Poor"], ["scale10", "Score 1-10"]].forEach(function (opt) {
-      var o = document.createElement("option");
-      o.value = opt[0]; o.textContent = opt[1];
-      if (cat.ratingType === opt[0]) o.selected = true;
-      typeSelect.appendChild(o);
-    });
-    typeSelect.addEventListener("change", function () { cat.ratingType = typeSelect.value; });
 
     var upCatBtn = document.createElement("button");
     upCatBtn.className = "btn-ghost";
@@ -222,32 +415,40 @@
 
     head.appendChild(iconInput);
     head.appendChild(nameWrap);
-    head.appendChild(typeSelect);
     head.appendChild(upCatBtn);
     head.appendChild(downCatBtn);
     head.appendChild(delCatBtn);
     block.appendChild(head);
 
+    var opts = document.createElement("div");
+    opts.className = "cat-opts";
+    opts.appendChild(document.createTextNode("Section:"));
+    opts.appendChild(makeSelect(GROUP_OPTIONS, cat.group || "visit", function (v) { cat.group = v; }));
+    opts.appendChild(document.createTextNode("Show:"));
+    opts.appendChild(makeSelect(featureOptions("in every shop"), cat.feature || "", function (v) { cat.feature = v; }));
+    block.appendChild(opts);
+
     var itemsWrap = document.createElement("div");
-    cat.items.forEach(function (item) {
-      itemsWrap.appendChild(renderItemRow(cat, item));
-    });
+    function renderItems() {
+      itemsWrap.innerHTML = "";
+      cat.items.forEach(function (item) { itemsWrap.appendChild(renderItemRow(cat, item, renderItems)); });
+    }
+    renderItems();
     block.appendChild(itemsWrap);
 
     var addItemBtn = document.createElement("button");
     addItemBtn.className = "btn-ghost";
     addItemBtn.textContent = "+ Add item";
     addItemBtn.addEventListener("click", function () {
-      var newItem = { _uid: makeUid(), id: cat.id + "-" + makeUid().slice(0, 4), label: "" };
-      cat.items.push(newItem);
-      itemsWrap.appendChild(renderItemRow(cat, newItem));
+      cat.items.push({ _uid: makeUid(), id: cat.id + "-" + makeUid().slice(0, 4), label: "", type: "scale5", feature: "" });
+      renderItems();
     });
     block.appendChild(addItemBtn);
 
     return block;
   }
 
-  function renderItemRow(cat, item) {
+  function renderItemRow(cat, item, rerender) {
     var row = document.createElement("div");
     row.className = "item-row";
 
@@ -257,52 +458,112 @@
     labelInput.placeholder = "Item text";
     labelInput.addEventListener("input", function () { item.label = labelInput.value; });
 
+    var typeSel = makeSelect(TYPE_OPTIONS, item.type || "scale5", function (v) { item.type = v; });
+    var featSel = makeSelect(featureOptions("every shop"), item.feature || "", function (v) { item.feature = v; });
+
+    var idx = cat.items.indexOf(item);
+    var upBtn = document.createElement("button");
+    upBtn.className = "btn-ghost";
+    upBtn.textContent = "↑";
+    upBtn.disabled = idx === 0;
+    upBtn.addEventListener("click", function () {
+      var i = cat.items.indexOf(item);
+      if (i <= 0) return;
+      cat.items.splice(i, 1); cat.items.splice(i - 1, 0, item);
+      rerender();
+    });
+    var downBtn = document.createElement("button");
+    downBtn.className = "btn-ghost";
+    downBtn.textContent = "↓";
+    downBtn.disabled = idx === cat.items.length - 1;
+    downBtn.addEventListener("click", function () {
+      var i = cat.items.indexOf(item);
+      if (i < 0 || i >= cat.items.length - 1) return;
+      cat.items.splice(i, 1); cat.items.splice(i + 1, 0, item);
+      rerender();
+    });
+
     var delBtn = document.createElement("button");
     delBtn.className = "btn-danger";
     delBtn.textContent = "✕";
     delBtn.addEventListener("click", function () {
       cat.items = cat.items.filter(function (i) { return i._uid !== item._uid; });
-      row.remove();
+      rerender();
     });
 
     row.appendChild(labelInput);
+    row.appendChild(typeSel);
+    row.appendChild(featSel);
+    row.appendChild(upBtn);
+    row.appendChild(downBtn);
     row.appendChild(delBtn);
     return row;
   }
 
   els.btnAddCat.addEventListener("click", function () {
-    categories.push({ _uid: makeUid(), id: "", name: "", icon: "📋", items: [] });
+    categories.push({ _uid: makeUid(), id: "", name: "", icon: "📋", group: "visit", feature: "", items: [] });
     renderEditor();
   });
 
-  // ---------- GitHub load/publish ----------
+  // ---------- Build & validate data.js ----------
+  function validate() {
+    var problems = [];
+    var seenShop = {};
+    shops.forEach(function (s) {
+      var n = s.name.trim().toLowerCase();
+      if (!n) return;
+      if (seenShop[n]) problems.push('Duplicate shop name: "' + s.name.trim() + '" (reports and follow-up are keyed by shop name)');
+      seenShop[n] = true;
+    });
+    var seenCat = {};
+    categories.forEach(function (c) {
+      if (!c.name.trim()) return;
+      var id = c.id || slugify(c.name);
+      if (seenCat[id]) problems.push('Duplicate category id: "' + id + '"');
+      seenCat[id] = true;
+      var seenItem = {};
+      c.items.forEach(function (i) {
+        if (!i.label.trim()) return;
+        if (seenItem[i.id]) problems.push('Duplicate item id "' + i.id + '" in ' + c.name);
+        seenItem[i.id] = true;
+      });
+    });
+    return problems;
+  }
+
+  function buildPayload() {
+    var cleanCats = categories
+      .filter(function (c) { return c.name.trim() !== ""; })
+      .map(function (c) {
+        var o = { id: c.id || slugify(c.name), name: c.name.trim(), icon: c.icon || "📋", group: c.group || "visit" };
+        if (c.feature) o.feature = c.feature;
+        o.items = c.items.filter(function (i) { return i.label.trim() !== ""; }).map(function (i) {
+          var it = { id: i.id, label: i.label.trim(), type: i.type || "scale5" };
+          if (i.feature) it.feature = i.feature;
+          return it;
+        });
+        return o;
+      });
+    return {
+      version: currentVersion + 1,
+      recipientEmail: els.recipient.value.trim(),
+      features: features.map(function (f) { return { id: f.id, name: f.name.trim() || f.id }; }),
+      shops: shops
+        .filter(function (s) { return s.name.trim() !== ""; })
+        .map(function (s) { return { name: s.name.trim(), features: s.features.slice() }; }),
+      categories: cleanCats
+    };
+  }
+
+  function buildDataJs() {
+    return "// data.js — published by admin.html\nwindow.STORE_CHECKLIST_DATA = " + JSON.stringify(buildPayload(), null, 2) + ";\n";
+  }
+
   function utf8ToBase64(str) {
     return btoa(unescape(encodeURIComponent(str)));
   }
 
-  function buildDataJs() {
-    var clean = categories
-      .filter(function (c) { return c.name.trim() !== ""; })
-      .map(function (c) {
-        return {
-          id: c.id || slugify(c.name),
-          name: c.name.trim(),
-          icon: c.icon || "📋",
-          ratingType: c.ratingType || "3state",
-          items: c.items.filter(function (i) { return i.label.trim() !== ""; }).map(function (i) {
-            return { id: i.id, label: i.label.trim() };
-          })
-        };
-      });
-    var payload = {
-      version: currentVersion + 1,
-      recipientEmail: els.recipient.value.trim(),
-      shops: shops.map(function (s) { return s.trim(); }).filter(function (s) { return s !== ""; }),
-      categories: clean
-    };
-    return "// data.js — published by admin.html\nwindow.STORE_CHECKLIST_DATA = " + JSON.stringify(payload, null, 2) + ";\n";
-  }
-
+  // ---------- GitHub load/publish ----------
   els.btnLoad.addEventListener("click", function () {
     var owner = els.owner.value.trim();
     var repo = els.repo.value.trim();
@@ -317,18 +578,8 @@
       .then(function (text) {
         var match = text.match(/window\.STORE_CHECKLIST_DATA\s*=\s*(\{[\s\S]*\});?\s*$/);
         if (!match) throw new Error("Could not read the remote data.js (unexpected format).");
-        var parsed = JSON.parse(match[1]);
-        currentVersion = parsed.version || 0;
-        els.recipient.value = parsed.recipientEmail || "";
-        shops = (parsed.shops || []).slice();
-        categories = (parsed.categories || []).map(function (c) {
-          return {
-            _uid: makeUid(), id: c.id, name: c.name, icon: c.icon, ratingType: c.ratingType || "3state",
-            items: (c.items || []).map(function (i) { return { _uid: makeUid(), id: i.id, label: i.label }; })
-          };
-        });
-        renderEditor();
-        renderShops();
+        applyData(JSON.parse(match[1]));
+        renderAll();
         setStatus("Loaded — current published version: v" + currentVersion);
       })
       .catch(function (err) { setStatus("❌ " + err.message); });
@@ -339,6 +590,8 @@
     var repo = els.repo.value.trim();
     var token = els.token.value.trim();
     if (!owner || !repo || !token) { alert("Missing owner/repo/token."); return; }
+    var problems = validate();
+    if (problems.length) { setStatus("❌ Not published:\n• " + problems.join("\n• ")); return; }
     savePrefs();
     setStatus("Publishing...");
 
@@ -368,64 +621,10 @@
       .catch(function (err) { setStatus("❌ " + err.message); });
   });
 
-  // ---------- Shops ----------
-  function renderShops() {
-    els.shopsRoot.innerHTML = "";
-    shops.forEach(function (shop, idx) {
-      var row = document.createElement("div");
-      row.className = "item-row";
-
-      var input = document.createElement("input");
-      input.type = "text";
-      input.value = shop;
-      input.addEventListener("input", function () { shops[idx] = input.value; });
-
-      var upBtn = document.createElement("button");
-      upBtn.className = "btn-ghost";
-      upBtn.textContent = "↑";
-      upBtn.disabled = idx === 0;
-      upBtn.addEventListener("click", function () {
-        if (idx === 0) return;
-        var tmp = shops[idx - 1]; shops[idx - 1] = shops[idx]; shops[idx] = tmp;
-        renderShops();
-      });
-
-      var downBtn = document.createElement("button");
-      downBtn.className = "btn-ghost";
-      downBtn.textContent = "↓";
-      downBtn.disabled = idx === shops.length - 1;
-      downBtn.addEventListener("click", function () {
-        if (idx === shops.length - 1) return;
-        var tmp = shops[idx + 1]; shops[idx + 1] = shops[idx]; shops[idx] = tmp;
-        renderShops();
-      });
-
-      var delBtn = document.createElement("button");
-      delBtn.className = "btn-danger";
-      delBtn.textContent = "✕";
-      delBtn.addEventListener("click", function () {
-        shops.splice(idx, 1);
-        renderShops();
-      });
-
-      row.appendChild(input);
-      row.appendChild(upBtn);
-      row.appendChild(downBtn);
-      row.appendChild(delBtn);
-      els.shopsRoot.appendChild(row);
-    });
-  }
-
-  els.btnAddShop.addEventListener("click", function () {
-    shops.push("");
-    renderShops();
-  });
-
   // ---------- Init ----------
-  loadLocalSeed();
+  applyData(window.STORE_CHECKLIST_DATA);
   restorePrefs();
-  renderEditor();
-  renderShops();
+  renderAll();
 })();
 </script>
 </body>

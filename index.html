@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -27,7 +27,7 @@
           <option value="">Select a shop</option>
         </select>
       </label>
-      <div id="shop-error" class="field-error" hidden>Enter a shop name first</div>
+      <div id="shop-error" class="field-error" hidden>Select a shop first</div>
       <label>Manager on duty
         <input type="text" id="input-manager" placeholder="Name" autocomplete="off">
       </label>
@@ -42,7 +42,8 @@
         <button id="btn-edit-info" class="btn-link">✎ <span id="summary-text"></span></button>
         <div class="save-status">Autosaved on this device — works fully offline</div>
       </div>
-      <div id="category-grid" class="category-grid"></div>
+      <div id="followup-panel" class="followup-panel" hidden></div>
+      <div id="groups-root"></div>
 
       <div class="finish-panel">
         <div class="field-label">Overall visit score (optional)</div>
@@ -55,18 +56,30 @@
           <textarea id="final-comment" rows="3" placeholder="Anything not captured above..."></textarea>
         </label>
         <button id="btn-export" class="btn-primary btn-large">Save &amp; create draft</button>
-        <button id="btn-new-visit" class="btn-link">New visit (clears everything)</button>
+        <button id="btn-new-visit" class="btn-link">New visit</button>
       </div>
     </section>
 
     <section id="screen-category" class="screen" hidden>
-      <button id="btn-back" class="btn-link">← Back</button>
-      <h2 id="category-title"></h2>
+      <div class="cat-bar">
+        <button type="button" id="btn-back" class="btn-back">← Categories</button>
+        <h2 id="category-title"></h2>
+      </div>
+      <div id="category-prev-comment" class="prev-comment" hidden></div>
       <div id="category-items" class="items-list"></div>
+
+      <button type="button" id="btn-add-item" class="btn-add-item">+ Add item</button>
+      <div id="add-item-form" class="add-item-form" hidden>
+        <input type="text" id="new-item-label" placeholder="Item to check" autocomplete="off">
+        <button type="button" id="btn-confirm-add-item" class="btn-small-primary">Add</button>
+        <button type="button" id="btn-cancel-add-item" class="btn-small">Cancel</button>
+      </div>
+
       <label class="comment-label">Comment
         <textarea id="category-comment" rows="4" placeholder="Notes, findings, actions..."></textarea>
       </label>
-      <button id="btn-back-bottom" class="btn-link">← Back</button>
+      <button type="button" id="btn-next" class="btn-primary">Done → Categories</button>
+      <button type="button" id="btn-back-bottom" class="btn-link">← Categories</button>
     </section>
   </main>
 
